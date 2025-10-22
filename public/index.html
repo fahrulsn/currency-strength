@@ -210,7 +210,6 @@
           });
           const hot = buildHotPairs(data.rank_norm, 3, 3, 3);
           renderHotTables(hot);
-
           // Detail pairs
           const tp = document.querySelector("#tbl-pairs tbody");
           tp.innerHTML = "";
@@ -240,37 +239,47 @@
       function buildHotPairs(rankNorm, topN = 3, botN = 3, maxRows = 3) {
         if (!rankNorm || rankNorm.length < 2) return { buy: [], sell: [] };
 
-        // rankNorm sudah terurut descending Strength
+        // sudah urut Strength descending
         const tops = rankNorm.slice(0, Math.min(topN, rankNorm.length));
         const bottoms = rankNorm.slice(Math.max(rankNorm.length - botN, 0));
 
         const candidates = [];
+
+        // buat kombinasi silang semua top vs bottom
         for (const t of tops) {
           for (const b of bottoms) {
             const st = Number(t["Strength"] ?? 0);
             const sb = Number(b["Strength"] ?? 0);
-            const gap = st - sb; // semakin besar semakin menarik (BUY top vs bottom)
+            const gap = st - sb;
+            const pairBuy = `${t.Currency}/${b.Currency}`;
+            const pairSell = `${b.Currency}/${t.Currency}`;
             candidates.push({
-              buyPair: `${t.Currency}/${b.Currency}`,
-              sellPair: `${b.Currency}/${t.Currency}`,
+              pairBuy,
+              pairSell,
               gap,
+              top: t.Currency,
+              bottom: b.Currency,
             });
           }
         }
 
-        // Urutkan dari gap terbesar
+        // urut berdasarkan gap terbesar
         candidates.sort((a, b) => b.gap - a.gap);
 
-        // Ambil maksimal 3 BUY & 3 SELL berdasarkan kandidat yang sama (di-flip)
+        // ambil 3 BUY dan 3 SELL teratas
         const topBuy = candidates.slice(0, maxRows).map((c, i) => ({
           no: i + 1,
-          pair: c.buyPair,
+          pair: c.pairBuy,
+          base: c.top,
+          quote: c.bottom,
           signal: "BUY",
           gap: c.gap,
         }));
         const topSell = candidates.slice(0, maxRows).map((c, i) => ({
           no: i + 1,
-          pair: c.sellPair,
+          pair: c.pairSell,
+          base: c.bottom,
+          quote: c.top,
           signal: "SELL",
           gap: c.gap,
         }));
@@ -286,21 +295,21 @@
 
         hot.buy.forEach((r) => {
           const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${r.no}</td><td>${
-            r.pair
-          }</td><td><span class="badge bg-success">${
-            r.signal
-          }</span></td><td>${fmt(r.gap, 1)}</td>`;
+          tr.innerHTML = `
+            <td>${r.no}</td>
+            <td>${r.pair}</td>
+            <td><span class="badge bg-success">${r.signal}</span></td>
+            <td>${fmt(r.gap, 1)}</td>`;
           tb.appendChild(tr);
         });
 
         hot.sell.forEach((r) => {
           const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${r.no}</td><td>${
-            r.pair
-          }</td><td><span class="badge bg-danger">${
-            r.signal
-          }</span></td><td>${fmt(r.gap, 1)}</td>`;
+          tr.innerHTML = `
+            <td>${r.no}</td>
+            <td>${r.pair}</td>
+            <td><span class="badge bg-danger">${r.signal}</span></td>
+            <td>${fmt(r.gap, 1)}</td>`;
           ts.appendChild(tr);
         });
       }
