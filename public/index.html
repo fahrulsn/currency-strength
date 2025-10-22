@@ -102,13 +102,45 @@
               <th>#</th>
               <th>Currency</th>
               <th>Score</th>
-              <th>Strength%</th>
+              <th>Strength</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
-
+      <h5 class="mt-4">Best Signal Pair</h5>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered" id="tbl-hot-buy">
+              <thead>
+                <tr>
+                  <th style="width: 48px">#</th>
+                  <th>Pair</th>
+                  <th>Signal</th>
+                  <th>Δ Strength</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered" id="tbl-hot-sell">
+              <thead>
+                <tr>
+                  <th style="width: 48px">#</th>
+                  <th>Pair</th>
+                  <th>Signal</th>
+                  <th>Δ Strength</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
       <h5 class="mt-4">Detail Per Pair</h5>
       <div class="table-responsive">
         <table class="table table-sm table-hover" id="tbl-pairs">
@@ -176,6 +208,8 @@
             )}</td><td>${fmt(r.Strength, 1)}</td>`;
             tn.appendChild(tr);
           });
+          const hot = buildHotPairs(data.rank_norm, 3, 3, 3);
+          renderHotTables(hot);
 
           // Detail pairs
           const tp = document.querySelector("#tbl-pairs tbody");
@@ -203,6 +237,73 @@
           btn.textContent = "Hitung";
         }
       });
+      function buildHotPairs(rankNorm, topN = 3, botN = 3, maxRows = 3) {
+        if (!rankNorm || rankNorm.length < 2) return { buy: [], sell: [] };
+
+        // rankNorm sudah terurut descending Strength
+        const tops = rankNorm.slice(0, Math.min(topN, rankNorm.length));
+        const bottoms = rankNorm.slice(Math.max(rankNorm.length - botN, 0));
+
+        const candidates = [];
+        for (const t of tops) {
+          for (const b of bottoms) {
+            const st = Number(t["Strength"] ?? 0);
+            const sb = Number(b["Strength"] ?? 0);
+            const gap = st - sb; // semakin besar semakin menarik (BUY top vs bottom)
+            candidates.push({
+              buyPair: `${t.Currency}/${b.Currency}`,
+              sellPair: `${b.Currency}/${t.Currency}`,
+              gap,
+            });
+          }
+        }
+
+        // Urutkan dari gap terbesar
+        candidates.sort((a, b) => b.gap - a.gap);
+
+        // Ambil maksimal 3 BUY & 3 SELL berdasarkan kandidat yang sama (di-flip)
+        const topBuy = candidates.slice(0, maxRows).map((c, i) => ({
+          no: i + 1,
+          pair: c.buyPair,
+          signal: "BUY",
+          gap: c.gap,
+        }));
+        const topSell = candidates.slice(0, maxRows).map((c, i) => ({
+          no: i + 1,
+          pair: c.sellPair,
+          signal: "SELL",
+          gap: c.gap,
+        }));
+
+        return { buy: topBuy, sell: topSell };
+      }
+
+      function renderHotTables(hot) {
+        const tb = document.querySelector("#tbl-hot-buy tbody");
+        const ts = document.querySelector("#tbl-hot-sell tbody");
+        tb.innerHTML = "";
+        ts.innerHTML = "";
+
+        hot.buy.forEach((r) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${r.no}</td><td>${
+            r.pair
+          }</td><td><span class="badge bg-success">${
+            r.signal
+          }</span></td><td>${fmt(r.gap, 1)}</td>`;
+          tb.appendChild(tr);
+        });
+
+        hot.sell.forEach((r) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${r.no}</td><td>${
+            r.pair
+          }</td><td><span class="badge bg-danger">${
+            r.signal
+          }</span></td><td>${fmt(r.gap, 1)}</td>`;
+          ts.appendChild(tr);
+        });
+      }
     </script>
   </body>
 </html>

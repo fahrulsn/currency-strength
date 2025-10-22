@@ -191,10 +191,10 @@ class handler(BaseHTTPRequestHandler):
             rank_norm = df_rank.copy()
             if rank_norm["Score"].nunique() > 1:
                 mn, mx = rank_norm["Score"].min(), rank_norm["Score"].max()
-                rank_norm["Strength%"] = (rank_norm["Score"] - mn) / (mx - mn) * 100.0
+                rank_norm["Strength"] = (rank_norm["Score"] - mn) / (mx - mn) * 100.0
             else:
-                rank_norm["Strength%"] = 50.0
-            rank_norm = rank_norm.sort_values(["Strength%","Score"], ascending=False, ignore_index=True)
+                rank_norm["Strength"] = 50.0
+            rank_norm = rank_norm.sort_values(["Strength","Score"], ascending=False, ignore_index=True)
 
             body = {
                 "meta": {
